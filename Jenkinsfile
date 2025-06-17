@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_USER = 'ubuntu'
-        DEPLOY_HOST = 'EC2_PUBLIC_IP_HERE'   // <-- Replace with your actual EC2 public IP
-        DEPLOY_KEY  = credentials('ec2-ssh-key') // <-- Use the exact ID you gave in credentials
+        DEPLOY_USER = 'azureuser'  // <-- Replace if your VM username is different
+        DEPLOY_HOST = 'YOUR_VM_PUBLIC_IP' // <-- Replace with Azure VM Public IP
+        AZURE_CREDENTIALS = credentials('jenkins-sp-nimra') // <-- Your Azure SP ID
     }
 
     stages {
@@ -14,28 +14,24 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Azure Login') {
             steps {
-                echo "Build step (if needed)"
+                sh '''
+                    az login --service-principal -u $AZURE_CREDENTIALS_USR -p $AZURE_CREDENTIALS_PSW --tenant $AZURE_CREDENTIALS_TEN
+                    az account set --subscription 08039bca-3858-4c11-97a7-e199f8325273
+                '''
             }
         }
 
-        stage('Test') {
+        stage('Deploy to Azure VM') {
             steps {
-                echo "Run tests"
-            }
-        }
-
-        stage('Deploy to EC2') {
-            steps {
-                sshagent (credentials: ['ec2-ssh-key']) {
-                    sh """
+                sshagent (credentials: ['azure-vm-ssh']) {  // <-- Replace with your SSH Key ID
+                    sh '''
                         ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST 'mkdir -p ~/app'
                         scp -o StrictHostKeyChecking=no -r * $DEPLOY_USER@$DEPLOY_HOST:~/app/
-                    """
+                    '''
                 }
             }
         }
     }
 }
-
