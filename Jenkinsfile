@@ -1,41 +1,31 @@
-
 pipeline {
     agent any
 
-    environment {
-        DEPLOY_USER = 'azureuser'  // <-- Replace if your VM username is different
-        DEPLOY_HOST = 'YOUR_VM_PUBLIC_IP' // <-- Replace with Azure VM Public IP
-        AZURE_CREDENTIALS = credentials('jenkins-sp-nimra') // <-- Your Azure SP ID
-    }
-
-   stages {
-    stage('Checkout') {
-        steps {
-            git branch: 'main','https://github.com/NIMRA46/devopsproject.git'
-        }
-    }
-}
-
-
-        stage('Azure Login') {
+    stages {
+        stage('Checkout') {
             steps {
-                sh '''
-                    az login --service-principal -u $AZURE_CREDENTIALS_USR -p $AZURE_CREDENTIALS_PSW --tenant $AZURE_CREDENTIALS_TEN
-                    az account set --subscription 08039bca-3858-4c11-97a7-e199f8325273
-                '''
+                git branch: 'main', url: 'https://github.com/NIMRA46/devopsproject.git'
             }
         }
 
-        stage('Deploy to Azure VM') {
+        stage('Build') {
             steps {
-                sshagent (credentials: ['azure-vm-ssh']) {  // <-- Replace with your SSH Key ID
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST 'mkdir -p ~/app'
-                        scp -o StrictHostKeyChecking=no -r * $DEPLOY_USER@$DEPLOY_HOST:~/app/
-                    '''
-                }
+                echo 'Building the project...'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying the application...'
             }
         }
     }
 }
+
    
