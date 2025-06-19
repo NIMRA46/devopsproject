@@ -2,9 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_USER = 'azureuser'  // Replace if your VM username is different
-        DEPLOY_HOST = '40.81.23.80' // Replace with your Azure VM Public IP
-        AZURE_CREDENTIALS = credentials('jenkins-sp-nimra') // Your Azure SP ID
+        DEPLOY_USER = 'azureuser'
+        DEPLOY_HOST = '40.81.23.80'
     }
 
     stages {
@@ -16,16 +15,24 @@ pipeline {
 
         stage('Azure Login') {
             steps {
-                sh '''
-                    az login --service-principal -u $AZURE_CREDENTIALS_USR -p $AZURE_CREDENTIALS_PSW --tenant $AZURE_CREDENTIALS_TEN
-                    az account set --subscription 08039bca-3858-4c11-97a7-e199f8325273
-                '''
+                withCredentials([azureServicePrincipal(
+                    credentialsId: 'jenkins-sp-nimra',
+                    subscriptionIdVariable: 'SUBSCRIPTION_ID',
+                    clientIdVariable: 'CLIENT_ID',
+                    clientSecretVariable: 'CLIENT_SECRET',
+                    tenantIdVariable: 'TENANT_ID'
+                )]) {
+                    sh '''
+                        az login --service-principal -u $CLIENT_ID -p $CLIENT_SECRET --tenant $TENANT_ID
+                        az account set --subscription $SUBSCRIPTION_ID
+                    '''
+                }
             }
         }
 
         stage('Deploy to Azure VM') {
             steps {
-                sshagent (credentials: ['azure-vm-ssh']) {  // Replace with your SSH Key ID
+                sshagent (credentials: ['azure-vm-ssh']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST 'mkdir -p ~/app'
                         scp -o StrictHostKeyChecking=no -r * $DEPLOY_USER@$DEPLOY_HOST:~/app/
