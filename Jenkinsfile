@@ -11,7 +11,7 @@ pipeline {
    stages {
     stage('Checkout') {
         steps {
-            git branch: 'main', url: 'https://github.com/NIMRA46/devopsproject.git'
+            git branch: 'main','https://github.com/NIMRA46/devopsproject.git'
         }
     }
 }
